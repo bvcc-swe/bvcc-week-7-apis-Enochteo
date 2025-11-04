@@ -4,15 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Bot, User, Send } from "lucide-react";
-import { time, timeStamp } from "console";
-import exp from "constants";
+import axios from "axios";
 
 const MockAIChat = ({ data = [] }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const getMockResponse = async (question) => {
+  const getMockResponse = async (question: string) => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     const lowerQ = question.toLowerCase();
     if (data.length > 0) {
@@ -75,11 +74,19 @@ const MockAIChat = ({ data = [] }) => {
     setInput("");
     setLoading(true);
     try {
-      const aiRespponse = await getMockResponse(currentInput);
+      const aiResponse = await axios.post("http://localhost:4000/messages", {
+        text: currentInput,
+      });
+      // Prefer a string from the response. Support { data: { text } } or plain data.
+      const responseText =
+        (aiResponse &&
+          aiResponse.data &&
+          (aiResponse.data.text ?? aiResponse.data)) ||
+        String(aiResponse);
       const aiMessage = {
         id: Date.now() + 1,
         type: "ai",
-        content: aiRespponse,
+        content: responseText,
         timeStamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
@@ -89,15 +96,15 @@ const MockAIChat = ({ data = [] }) => {
         id: Date.now() + 1,
         type: "ai",
         content: "Sorry, trouble processing your request",
-        timestamp: new Date(),
+        timeStamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
   };
-  const handleKeyPress = (e) => {
-    if (e.key == "Enter" && !e.shiftKey) {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
